@@ -1,0 +1,974 @@
+<!-- board -->
+{% extends "base.html" %} {% block content %}
+<div class="min-h-screen flex flex-col">
+
+  <!-- Replace the nav section in board.html with this -->
+  <nav class="bg-blue-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-4">
+        <a href="/boards" class="text-white hover:underline"
+          >← Back to Boards</a
+        >
+        <h1 id="board-title" class="text-2xl font-bold">Loading...</h1>
+        <button
+          id="edit-title-btn"
+          class="hidden bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-sm"
+        >
+          Edit Title
+        </button>
+      </div>
+      <div
+        class="flex items-center space-x-4 relative"
+        id="user-menu-container"
+      >
+        <button
+          id="user-menu-button"
+          class="flex items-center space-x-2 focus:outline-none"
+        >
+          <div
+            class="w-10 h-10 rounded-full bg-blue-400 flex items-center justify-center text-white"
+          >
+            <span id="user-initials">{{ user.email|first|upper }}</span>
+          </div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+        <div
+          id="user-dropdown"
+          class="absolute right-0 top-12 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden"
+        >
+          <a
+            href="/boards"
+            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >My Boards</a
+          >
+          <a
+            href="/profile"
+            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >Profile</a
+          >
+          <button
+            onclick="logout()"
+            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mx-auto p-6 flex-grow">
+    <div class="mb-6 flex flex-wrap justify-between items-center">
+      <div class="flex space-x-4 mb-4 md:mb-0">
+        <div class="bg-blue-100 text-blue-800 px-4 py-2 rounded">
+          Active Tasks: <span id="active-tasks-count">1</span>
+        </div>
+        <div class="bg-green-100 text-green-800 px-4 py-2 rounded">
+          Completed Tasks: <span id="completed-tasks-count">1</span>
+        </div>
+        <div class="bg-gray-100 text-gray-800 px-4 py-2 rounded">
+          Total Tasks: <span id="total-tasks-count">2</span>
+        </div>
+      </div>
+      <div class="flex space-x-2">
+        <button
+          id="add-member-btn"
+          class="hidden bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
+        >
+          Add Member
+        </button>
+        <button
+          id="add-task-btn"
+          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Add Task
+        </button>
+        <button
+          id="delete-board-btn"
+          class="hidden bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+        >
+          Delete Board
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <h3 class="text-xl font-bold mb-2">Members</h3>
+      <div id="members-container" class="flex flex-wrap gap-2">
+        <div class="animate-pulse">
+          <div class="h-8 w-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-xl font-bold mb-2">Tasks</h3>
+      <div
+        id="tasks-container"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      >
+        <div class="animate-pulse">
+          <div class="h-32 bg-gray-200 rounded-lg"></div>
+        </div>
+        <div class="animate-pulse">
+          <div class="h-32 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Board Title Modal -->
+  <div
+    id="edit-title-modal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden"
+  >
+    <div class="bg-white p-6 rounded-lg w-96">
+      <h3 class="text-xl font-bold mb-4">Edit Board Title</h3>
+      <input
+        id="new-board-title"
+        type="text"
+        placeholder="Board Title"
+        class="w-full p-2 border rounded mb-4"
+      />
+      <div class="flex justify-end space-x-2">
+        <button
+          onclick="hideEditTitleModal()"
+          class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+        >
+          Cancel
+        </button>
+        <button
+          onclick="updateBoardTitle()"
+          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Update
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Member Modal -->
+  <div
+    id="add-member-modal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden"
+  >
+    <div class="bg-white p-6 rounded-lg w-96">
+      <h3 class="text-xl font-bold mb-4">Add Member</h3>
+      <input
+        id="member-email"
+        type="email"
+        placeholder="Member Email"
+        class="w-full p-2 border rounded mb-4"
+      />
+      <div class="flex justify-end space-x-2">
+        <button
+          onclick="hideAddMemberModal()"
+          class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+        >
+          Cancel
+        </button>
+        <button
+          onclick="addMember()"
+          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Task Modal -->
+  <div
+    id="add-task-modal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden"
+  >
+    <div class="bg-white p-6 rounded-lg w-96">
+      <h3 class="text-xl font-bold mb-4">Add Task</h3>
+      <input
+        id="task-title"
+        type="text"
+        placeholder="Task Title"
+        class="w-full p-2 border rounded mb-4"
+      />
+      <input
+        id="task-due-date"
+        type="date"
+        class="w-full p-2 border rounded mb-4"
+      />
+      <select id="task-assignee" class="w-full p-2 border rounded mb-4">
+        <option value="">Unassigned</option>
+        <!-- Members will be loaded here -->
+      </select>
+      <div class="flex justify-end space-x-2">
+        <button
+          onclick="hideAddTaskModal()"
+          class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+        >
+          Cancel
+        </button>
+        <button
+          onclick="addTask()"
+          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Task Modal -->
+  <div
+    id="edit-task-modal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden"
+  >
+    <div class="bg-white p-6 rounded-lg w-96">
+      <h3 class="text-xl font-bold mb-4">Edit Task</h3>
+      <input id="edit-task-id" type="hidden" />
+      <input
+        id="edit-task-title"
+        type="text"
+        placeholder="Task Title"
+        class="w-full p-2 border rounded mb-4"
+      />
+      <input
+        id="edit-task-due-date"
+        type="date"
+        class="w-full p-2 border rounded mb-4"
+      />
+      <select id="edit-task-assignee" class="w-full p-2 border rounded mb-4">
+        <option value="">Unassigned</option>
+        <!-- Members will be loaded here -->
+      </select>
+      <div class="flex justify-end space-x-2">
+        <button
+          onclick="hideEditTaskModal()"
+          class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+        >
+          Cancel
+        </button>
+        <button
+          onclick="updateTask()"
+          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Update
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Board Modal -->
+  <div
+    id="confirm-delete-board-modal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden"
+  >
+    <div class="bg-white p-6 rounded-lg w-96">
+      <h3 class="text-xl font-bold mb-4">Delete Board</h3>
+      <p class="mb-4">
+        Are you sure you want to delete this board? This action cannot be
+        undone.
+      </p>
+      <div class="flex justify-end space-x-2">
+        <button
+          onclick="hideConfirmDeleteBoardModal()"
+          class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+        >
+          Cancel
+        </button>
+        <button
+          onclick="deleteBoard()"
+          class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Remove Member Modal -->
+  <div
+    id="confirm-remove-member-modal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden"
+  >
+    <div class="bg-white p-6 rounded-lg w-96">
+      <h3 class="text-xl font-bold mb-4">Remove Member</h3>
+      <p class="mb-4">
+        Are you sure you want to remove this member? All their assigned tasks
+        will be marked as unassigned.
+      </p>
+      <input id="remove-member-id" type="hidden" />
+      <div class="flex justify-end space-x-2">
+        <button
+          onclick="hideConfirmRemoveMemberModal()"
+          class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+        >
+          Cancel
+        </button>
+        <button
+          onclick="removeMember()"
+          class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+        >
+          Remove
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Global variables
+  let boardTasks = [];
+  let boardData = null;
+  let isCreator = false;
+  const boardId = "{{ board_id }}";
+
+  // Fetch board data on page load
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchBoardData();
+    fetchTaskStats();
+  });
+
+  // Toggle user dropdown
+  document
+    .getElementById("user-menu-button")
+    .addEventListener("click", function () {
+      document.getElementById("user-dropdown").classList.toggle("hidden");
+    });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", function (event) {
+    const container = document.getElementById("user-menu-container");
+    if (!container.contains(event.target)) {
+      document.getElementById("user-dropdown").classList.add("hidden");
+    }
+  });
+
+  async function fetchBoardData() {
+    try {
+      const response = await fetch(`/api/boards/${boardId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      // const taskResponse = await fetch(`/api/boards/${boardId}/tasks`);
+      // if (!taskResponse.ok) {
+      //   throw new Error(`HTTP error! status: ${taskResponse.status}`)
+      // }
+      // const taskData = await taskResponse.json();
+      // console.log('Tasks: ', taskData.tasks || []);
+      const data = await response.json();
+      // console.log("Board data response:", data); // Debug log
+
+      boardData = data.board;
+      boardTasks = data.tasks || []; // Ensure tasks is an array
+      isCreator = boardData.is_creator;
+      // console.log("Board tasks:", boardTasks); // Debug log
+
+      // Update board title
+      document.getElementById("board-title").textContent = boardData.title;
+
+      // Show/hide creator-only buttons
+      if (isCreator) {
+        document.getElementById("edit-title-btn").classList.remove("hidden");
+        document.getElementById("add-member-btn").classList.remove("hidden");
+        document.getElementById("delete-board-btn").classList.remove("hidden");
+      }
+
+      // Add event listeners for creator-only buttons
+      document
+        .getElementById("edit-title-btn")
+        .addEventListener("click", showEditTitleModal);
+      document
+        .getElementById("add-member-btn")
+        .addEventListener("click", showAddMemberModal);
+      document
+        .getElementById("add-task-btn")
+        .addEventListener("click", showAddTaskModal);
+      document
+        .getElementById("delete-board-btn")
+        .addEventListener("click", showConfirmDeleteBoardModal);
+
+      // Load members with detailed information
+      loadMembers(boardData.members_info);
+
+      // Load tasks with assignee information
+      loadTasks(boardTasks);
+
+      updateMemberOptions();
+    } catch (error) {
+      console.error("Error fetching board data:", error);
+    }
+  }
+
+  async function fetchTaskStats() {
+    try {
+      const response = await fetch(`/api/task-stats/${boardId}`);
+      const data = await response.json();
+
+      document.getElementById("active-tasks-count").textContent =
+        data.active_tasks;
+      document.getElementById("completed-tasks-count").textContent =
+        data.completed_tasks;
+      document.getElementById("total-tasks-count").textContent =
+        data.total_tasks;
+    } catch (error) {
+      console.error("Error fetching task stats:", error);
+    }
+  }
+
+  function loadMembers(membersInfo) {
+    const membersContainer = document.getElementById("members-container");
+
+    // Add a check to ensure the element exists
+    if (!membersContainer) {
+      console.error("Error: members-container element not found in the DOM");
+      return; // Exit the function if the element doesn't exist
+    }
+
+    membersContainer.innerHTML = "";
+
+    // Add creator first
+    const creatorInfo = boardData.creator_info || {
+      id: boardData.creator_id,
+      email: boardData.creator_email,
+      display_name: boardData.creator_email,
+    };
+    const creatorItem = document.createElement("div");
+    creatorItem.className =
+      "bg-blue-100 text-blue-800 px-3 py-1 rounded flex items-center justify-between";
+    creatorItem.innerHTML = `
+      <span class="member-name">${
+        creatorInfo.display_name || creatorInfo.email
+      } (Creator)</span>
+    `;
+    membersContainer.appendChild(creatorItem);
+
+    // Add other members
+    if (membersInfo && membersInfo.length > 0) {
+      membersInfo.forEach((member) => {
+        const memberItem = document.createElement("div");
+        memberItem.className =
+          "bg-gray-100 text-gray-800 px-3 py-1 rounded flex items-center justify-between";
+        memberItem.innerHTML = `
+          <span class="member-name">${
+            member.display_name || member.email || member.id
+          }</span>
+          ${
+            isCreator
+              ? `<button class="text-red-500 hover:text-red-700 ml-2" onclick="showConfirmRemoveMemberModal('${member.id}')">×</button>`
+              : ""
+          }
+        `;
+        membersContainer.appendChild(memberItem);
+      });
+    }
+  }
+
+  function updateMemberOptions() {
+    const taskAssigneeSelect = document.getElementById("task-assignee");
+    const editTaskAssigneeSelect =
+      document.getElementById("edit-task-assignee");
+
+    // Clear existing options except the first one
+    while (taskAssigneeSelect.options.length > 1) {
+      taskAssigneeSelect.remove(1);
+    }
+
+    while (editTaskAssigneeSelect.options.length > 1) {
+      editTaskAssigneeSelect.remove(1);
+    }
+
+    // Add creator
+    const creatorInfo = boardData.creator_info || {
+      id: boardData.creator_id,
+      email: boardData.creator_email,
+      display_name: boardData.creator_email,
+    };
+
+    const creatorOption = document.createElement("option");
+    creatorOption.value = creatorInfo.id;
+    creatorOption.textContent = `${
+      creatorInfo.display_name || creatorInfo.email
+    } (Owner)`;
+    taskAssigneeSelect.appendChild(creatorOption);
+
+    const editCreatorOption = document.createElement("option");
+    editCreatorOption.value = creatorInfo.id;
+    editCreatorOption.textContent = `${
+      creatorInfo.display_name || creatorInfo.email
+    } (Owner)`;
+    editTaskAssigneeSelect.appendChild(editCreatorOption);
+
+    // Add members
+    if (boardData.members_info && boardData.members_info.length > 0) {
+      boardData.members_info.forEach((member) => {
+        const memberOption = document.createElement("option");
+        memberOption.value = member.id;
+        memberOption.textContent = member.display_name || member.email || member.id;
+        taskAssigneeSelect.appendChild(memberOption);
+
+        const editMemberOption = document.createElement("option");
+        editMemberOption.value = member.id;
+        editMemberOption.textContent = member.display_name || member.email || member.id;
+        editTaskAssigneeSelect.appendChild(editMemberOption);
+      });
+    }
+    // Fallback to member IDs if detailed info is not available
+    else if (boardData.members && boardData.members.length > 0) {
+      boardData.members.forEach((memberId) => {
+        const memberOption = document.createElement("option");
+        memberOption.value = memberId;
+        memberOption.textContent = memberId; // Fallback to ID
+        taskAssigneeSelect.appendChild(memberOption);
+
+        const editMemberOption = document.createElement("option");
+        editMemberOption.value = memberId;
+        editMemberOption.textContent = memberId; // Fallback to ID
+        editTaskAssigneeSelect.appendChild(editMemberOption);
+      });
+    }
+  }
+
+  function loadTasks(tasks) {
+    const tasksContainer = document.getElementById("tasks-container");
+
+    if (!tasksContainer) {
+      console.error("Error: tasks-container element not found in the DOM");
+      return;
+    }
+
+    tasksContainer.innerHTML = "";
+
+    if (tasks && tasks.length > 0) {
+      console.log("Rendering tasks:", tasks.length); // Debug log
+      tasks.forEach((task) => {
+        const taskCard = document.createElement("div");
+        taskCard.className = `bg-white p-4 rounded-lg shadow ${
+          task.unassigned ? "border-2 border-red-500" : ""
+        } ${task.completed ? "bg-green-50" : ""}`;
+
+        // Format due date
+        const dueDate = task.due_date
+          ? new Date(task.due_date).toLocaleDateString()
+          : "No due date";
+
+        // Get assignee name
+        let assignedTo = "Unassigned";
+        if (task.assigned_to) {
+          if (task.assignee_info) {
+            assignedTo =
+              task.assignee_info.display_name || task.assignee_info.email;
+          } else if (task.assigned_to === boardData.creator_id) {
+            assignedTo = `${boardData.creator_email} (Owner)`;
+          } else {
+            assignedTo = task.assigned_to;
+          }
+        }
+
+        taskCard.innerHTML = `
+      <div class="flex justify-between items-start">
+        <h3 class="text-lg font-semibold ${
+          task.completed ? "line-through text-gray-500" : ""
+        }">${task.title}</h3>
+        <div class="flex space-x-2">
+          <button onclick="showEditTaskModal('${
+            task.id
+          }')" class="edit-task-btn text-blue-500 hover:text-blue-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+          </button>
+          <button onclick="deleteTask('${
+            task.id
+          }')" class="delete-task-btn text-red-500 hover:text-red-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <p class="text-gray-500 text-sm mt-2">Due: ${dueDate}</p>
+      <p class="text-gray-500 text-sm">Assigned to: ${assignedTo}</p>
+      <div class="mt-4 flex items-center">
+        <input 
+          type="checkbox" 
+          id="task-${task.id}" 
+          ${task.completed ? "checked" : ""} 
+          onchange="toggleTaskCompletion('${task.id}', this.checked)" 
+          class="task-checkbox h-5 w-5 text-blue-600">
+        <label for="task-${task.id}" class="ml-2 text-gray-700">${
+          task.completed ? "Completed" : "Mark as completed"
+        }</label>
+      </div>
+      ${
+        task.completed && task.completed_at
+          ? `<p class="text-xs text-gray-500 mt-2">Completed on: ${new Date(
+              task.completed_at
+            ).toLocaleString()}</p>`
+          : ""
+      }
+    `;
+
+        tasksContainer.appendChild(taskCard);
+
+        // Add event listeners for task actions
+        taskCard
+          .querySelector(".task-checkbox")
+          .addEventListener("change", (e) => {
+            toggleTaskCompletion(task.id, e.target.checked);
+          });
+
+        // taskCard
+        //   .querySelector(".edit-task-btn")
+        //   .addEventListener("click", () => {
+        //     showEditTaskModal(task.id);
+        //   });
+
+        // taskCard
+        //   .querySelector(".delete-task-btn")
+        //   .addEventListener("click", () => {
+        //     deleteTask(task.id);
+        //   });
+      });
+    } else {
+      console.log("No tasks to display"); // Debug log
+      tasksContainer.innerHTML =
+        '<p class="col-span-3 text-center text-gray-500">No tasks yet. Add a task to get started!</p>';
+    }
+  }
+
+  // Task operations
+  async function addTask() {
+    const title = document.getElementById("task-title").value.trim();
+    const dueDate = document.getElementById("task-due-date").value;
+    const assignedTo = document.getElementById("task-assignee").value;
+
+    if (!title) {
+      alert("Please enter a task title");
+      return;
+    }
+
+    try {
+      console.log("Creating task with data:", { title, dueDate, assignedTo });
+      
+      const response = await fetch(`/api/boards/${boardId}/tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          due_date: dueDate,
+          assigned_to: assignedTo,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Task creation response:", responseData);
+
+      hideAddTaskModal();
+      
+      // Important: Refresh the board data to show the new task
+      await fetchBoardData();
+      await fetchTaskStats();
+    } catch (error) {
+      console.error("Error adding task:", error);
+      alert("An error occurred while adding the task: " + error.message);
+    }
+  }
+
+  async function updateTask() {
+    const taskId = document.getElementById("edit-task-id").value;
+    const title = document.getElementById("edit-task-title").value.trim();
+    const dueDate = document.getElementById("edit-task-due-date").value;
+    const assignedTo = document.getElementById("edit-task-assignee").value;
+
+    if (!title) {
+      alert("Please enter a task title");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          due_date: dueDate,
+          assigned_to: assignedTo,
+        }),
+      });
+
+      if (response.ok) {
+        hideEditTaskModal();
+        fetchBoardData();
+        fetchTaskStats();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error("Error updating task:", error);
+      alert("An error occurred while updating the task");
+    }
+  }
+
+  async function deleteTask(taskId) {
+    if (!confirm("Are you sure you want to delete this task?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("Task deleted successfully");
+        fetchBoardData();
+        fetchTaskStats();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      alert("An error occurred while deleting the task");
+    }
+  }
+
+  async function toggleTaskCompletion(taskId, completed) {
+    try {
+      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ completed }),
+      });
+
+      if (response.ok) {
+        fetchBoardData();
+        fetchTaskStats();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error("Error updating task completion:", error);
+      alert("An error occurred while updating the task");
+    }
+  }
+
+  // Board operations
+  async function updateBoardTitle() {
+    const newTitle = document.getElementById("new-board-title").value.trim();
+
+    if (!newTitle) {
+      alert("Please enter a board title");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/boards/${boardId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title: newTitle }),
+      });
+
+      if (response.ok) {
+        hideEditTitleModal();
+        fetchBoardData();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error("Error updating board title:", error);
+      alert("An error occurred while updating the board title");
+    }
+  }
+
+  async function deleteBoard() {
+    try {
+      const response = await fetch(`/api/boards/${boardId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("Board deleted successfully");
+        window.location.href = "/boards";
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail}`);
+        hideConfirmDeleteBoardModal();
+      }
+    } catch (error) {
+      console.error("Error deleting board:", error);
+      alert("An error occurred while deleting the board");
+      hideConfirmDeleteBoardModal();
+    }
+  }
+
+  // Member operations
+  async function addMember() {
+    const email = document.getElementById("member-email").value.trim();
+
+    if (!email) {
+      alert("Please enter a member email");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/boards/${boardId}/members`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        hideAddMemberModal();
+        fetchBoardData();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error("Error adding member:", error);
+      alert("An error occurred while adding the member");
+    }
+  }
+
+  async function removeMember() {
+    const memberId = document.getElementById("remove-member-id").value;
+
+    try {
+      const response = await fetch(
+        `/api/boards/${boardId}/members/${memberId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        hideConfirmRemoveMemberModal();
+        fetchBoardData();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error("Error removing member:", error);
+      alert("An error occurred while removing the member");
+    }
+  }
+
+  // Modal operations
+  function showEditTitleModal() {
+    document.getElementById("new-board-title").value = boardData.title;
+    document.getElementById("edit-title-modal").classList.remove("hidden");
+  }
+
+  function hideEditTitleModal() {
+    document.getElementById("edit-title-modal").classList.add("hidden");
+  }
+
+  function showAddMemberModal() {
+    document.getElementById("member-email").value = "";
+    document.getElementById("add-member-modal").classList.remove("hidden");
+  }
+
+  function hideAddMemberModal() {
+    document.getElementById("add-member-modal").classList.add("hidden");
+  }
+
+  function showAddTaskModal() {
+    document.getElementById("task-title").value = "";
+    document.getElementById("task-due-date").value = "";
+    document.getElementById("task-assignee").value = "";
+    document.getElementById("add-task-modal").classList.remove("hidden");
+  }
+
+  function hideAddTaskModal() {
+    document.getElementById("add-task-modal").classList.add("hidden");
+  }
+
+  function showEditTaskModal(taskId) {
+    // console.log("showEditTaskModal called with taskId:", taskId);
+    const task = boardTasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    document.getElementById("edit-task-id").value = taskId;
+    document.getElementById("edit-task-title").value = task.title;
+    document.getElementById("edit-task-due-date").value = task.due_date || "";
+    document.getElementById("edit-task-assignee").value =
+      task.assigned_to || "";
+    document.getElementById("edit-task-modal").classList.remove("hidden");
+  }
+
+  function hideEditTaskModal() {
+    document.getElementById("edit-task-modal").classList.add("hidden");
+  }
+
+  function showConfirmDeleteBoardModal() {
+    document
+      .getElementById("confirm-delete-board-modal")
+      .classList.remove("hidden");
+  }
+
+  function hideConfirmDeleteBoardModal() {
+    document
+      .getElementById("confirm-delete-board-modal")
+      .classList.add("hidden");
+  }
+
+  function showConfirmRemoveMemberModal(memberId) {
+    document.getElementById("remove-member-id").value = memberId;
+    document
+      .getElementById("confirm-remove-member-modal")
+      .classList.remove("hidden");
+  }
+
+  function hideConfirmRemoveMemberModal() {
+    document
+      .getElementById("confirm-remove-member-modal")
+      .classList.add("hidden");
+  }
+
+  async function logout() {
+    try {
+      // Sign out from Firebase
+      await firebase.auth().signOut();
+
+      // Clear server-side cookie
+      await fetch("/api/logout", { method: "POST" });
+
+      // Redirect to login page
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  }
+</script>
+{% endblock %}

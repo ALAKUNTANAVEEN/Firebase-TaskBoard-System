@@ -1,0 +1,117 @@
+{% extends "base.html" %} {% block content %}
+<div class="min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded shadow-md w-96">
+    <h1 class="text-2xl font-bold mb-6">Create an Account</h1>
+    <form onsubmit="event.preventDefault(); register();" class="space-y-4">
+      
+      <div>
+        <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
+        <input
+          id="name"
+          type="text"
+          placeholder="John Doe"
+          class="w-full p-2 border rounded mt-1"
+          required
+        />
+      </div>
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+        <input
+          id="email"
+          type="email"
+          placeholder="you@example.com"
+          class="w-full p-2 border rounded mt-1"
+          required
+        />
+      </div>
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+        <input
+          id="password"
+          type="password"
+          placeholder="Minimum 6 characters"
+          class="w-full p-2 border rounded mt-1"
+          required
+          minlength="6"
+        />
+      </div>
+      <div>
+        <label for="confirm-password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+        <input
+          id="confirm-password"
+          type="password"
+          placeholder="Confirm your password"
+          class="w-full p-2 border rounded mt-1"
+          required
+          minlength="6"
+        />
+      </div>
+      <button
+        type="submit"
+        class="w-full bg-blue-500 text-white p-2 rounded-xl hover:bg-blue-600"
+      >
+        Create Account
+      </button>
+      <button
+        type="button"
+        onclick="handleGoogleSignin()"
+        class="w-full bg-transparent font-medium border border-2 rounded-xl text-gray-600 p-2 hover:bg-blue-600 hover:text-white"
+      >
+        <i class="fab fa-google mr-2"></i> Continue with Google
+      </button>
+      <div class="text-center text-gray-600 mt-4">
+        Already have an account? <a href="/" class="text-blue-500 hover:underline">Sign In</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function register() {
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+    
+    // Basic validation
+    if (!name || !email || !password) {
+      alert('Please fill in all fields');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+    
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters long');
+      return;
+    }
+    
+    // Create user with Firebase Auth
+    firebase.auth().createUserWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        // Update profile with name
+        return userCredential.user.updateProfile({
+          displayName: name
+        }).then(() => userCredential.user);
+      })
+      .then((user) => {
+        // Send verification email
+        return user.sendEmailVerification().then(() => user);
+      })
+      .then((user) => {
+        // Send token to server
+        return sendTokenToServer(user).then(() => {
+          alert('Account created successfully! Please check your email to verify your account.');
+          window.location.href = '/boards';
+        });
+      })
+      .catch((error) => {
+        console.error('Registration error:', error);
+        alert(`Registration failed: ${error.message}`);
+      });
+  }
+</script>
+{% endblock %}

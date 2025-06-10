@@ -1,0 +1,423 @@
+{% extends "base.html" %} {% block content %}
+<div class="min-h-screen flex flex-col">
+  <nav class="bg-blue-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Task Manager</h1>
+      <div
+        class="flex items-center space-x-4 relative"
+        id="user-menu-container"
+      >
+        <button
+          id="user-menu-button"
+          class="flex items-center space-x-2 focus:outline-none"
+        >
+          <div
+            class="w-10 h-10 rounded-full bg-blue-400 flex items-center justify-center text-white"
+          >
+            <span id="user-initials">{{ user.email|first|upper }}</span>
+          </div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+        <div
+          id="user-dropdown"
+          class="absolute right-0 top-12 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden"
+        >
+          <a
+            href="/boards"
+            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >My Boards</a
+          >
+          <a
+            href="/profile"
+            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >Profile</a
+          >
+          <button
+            onclick="logout()"
+            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mx-auto p-6 flex-grow">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-8">
+      <h2 class="text-2xl font-bold mb-6">Your Profile</h2>
+
+      <div id="profile-view" class="space-y-6">
+        <div class="flex items-center space-x-4">
+          <div
+            class="w-20 h-20 rounded-full bg-blue-400 flex items-center justify-center text-white text-3xl"
+          >
+            <span id="profile-initials">{{ user.email|first|upper }}</span>
+          </div>
+          <div>
+            <h3 id="display-name-view" class="text-xl font-semibold">
+              {{ user.display_name or user.email }}
+            </h3>
+            <p id="email-view" class="text-gray-600">{{ user.email }}</p>
+          </div>
+        </div>
+
+        <div class="border-t pt-4">
+          <h4 class="text-lg font-semibold mb-2">Account Information</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-500">Display Name</p>
+              <p id="display-name-field">
+                {{ user.display_name or "Not set" }}
+              </p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">Email</p>
+              <p>{{ user.email }}</p>
+              <p
+                id="email-verified-badge"
+                class="text-xs {{ 'text-green-600' if user.email_verified else 'text-red-600' }}"
+              >
+                {{ "Verified" if user.email_verified else "Not Verified" }}
+              </p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">Account Created</p>
+              <p id="created-at-field">Loading...</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">Last Sign In</p>
+              <p id="last-login-field">Loading...</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex space-x-4">
+          <button
+            id="edit-profile-btn"
+            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Edit Profile
+          </button>
+          <button
+            id="change-password-btn"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
+          >
+            Change Password
+          </button>
+          {% if not user.email_verified %}
+          <button
+            id="verify-email-btn"
+            class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Verify Email
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Edit Profile Form (Hidden by default) -->
+      <div id="edit-profile-form" class="hidden space-y-4">
+        <h3 class="text-xl font-semibold mb-4">Edit Profile</h3>
+        <div>
+          <label
+            for="edit-display-name"
+            class="block text-sm font-medium text-gray-700"
+            >Display Name</label
+          >
+          <input
+            id="edit-display-name"
+            type="text"
+            class="w-full p-2 border rounded mt-1"
+            value="{{ user.display_name or '' }}"
+          />
+        </div>
+        <div class="flex space-x-4">
+          <button
+            id="save-profile-btn"
+            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Save Changes
+          </button>
+          <button
+            id="cancel-edit-btn"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Change Password Form (Hidden by default) -->
+      <div id="change-password-form" class="hidden space-y-4">
+        <h3 class="text-xl font-semibold mb-4">Change Password</h3>
+        <div>
+          <label
+            for="current-password"
+            class="block text-sm font-medium text-gray-700"
+            >Current Password</label
+          >
+          <input
+            id="current-password"
+            type="password"
+            class="w-full p-2 border rounded mt-1"
+          />
+        </div>
+        <div>
+          <label
+            for="new-password"
+            class="block text-sm font-medium text-gray-700"
+            >New Password</label
+          >
+          <input
+            id="new-password"
+            type="password"
+            class="w-full p-2 border rounded mt-1"
+          />
+        </div>
+        
+        <div>
+          <label
+            for="confirm-new-password"
+            class="block text-sm font-medium text-gray-700"
+            >Confirm New Password</label
+          >
+          <input
+            id="confirm-new-password"
+            type="password"
+            class="w-full p-2 border rounded mt-1"
+          />
+        </div>
+        <div class="flex space-x-4">
+          <button
+            id="save-password-btn"
+            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Update Password
+          </button>
+          <button
+            id="cancel-password-btn"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // console.log('User', user);
+      // Format the created_at timestamp
+      const createdAtTimestamp = {{ user.created_at|default(0) }};
+      if (createdAtTimestamp) {
+        const createdAtDate = new Date(createdAtTimestamp);
+        document.getElementById('created-at-field').textContent = createdAtDate.toDateString();
+      } else {
+        document.getElementById('created-at-field').textContent = 'Unknown';
+      }
+
+      // Format the last_login timestamp
+      const lastLoginTimestamp = {{ user.last_login|default(0) }};
+      if (lastLoginTimestamp) {
+        const lastLoginDate = new Date(lastLoginTimestamp);
+        document.getElementById('last-login-field').textContent = lastLoginDate.toLocaleString();
+      } else {
+        document.getElementById('last-login-field').textContent = 'Never';
+      }
+    });
+
+    // Toggle user dropdown
+    document.getElementById('user-menu-button').addEventListener('click', function() {
+      document.getElementById('user-dropdown').classList.toggle('hidden');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const container = document.getElementById('user-menu-container');
+      if (!container.contains(event.target)) {
+        document.getElementById('user-dropdown').classList.add('hidden');
+      }
+    });
+
+    // Edit profile functionality
+    document.getElementById('edit-profile-btn').addEventListener('click', function() {
+      document.getElementById('profile-view').classList.add('hidden');
+      document.getElementById('edit-profile-form').classList.remove('hidden');
+      document.getElementById('change-password-form').classList.add('hidden');
+    });
+
+    document.getElementById('cancel-edit-btn').addEventListener('click', function() {
+      document.getElementById('profile-view').classList.remove('hidden');
+      document.getElementById('edit-profile-form').classList.add('hidden');
+    });
+
+    document.getElementById('save-profile-btn').addEventListener('click', updateProfile);
+
+    // Change password functionality
+    document.getElementById('change-password-btn').addEventListener('click', function() {
+      document.getElementById('profile-view').classList.add('hidden');
+      document.getElementById('edit-profile-form').classList.add('hidden');
+      document.getElementById('change-password-form').classList.remove('hidden');
+    });
+
+    document.getElementById('cancel-password-btn').addEventListener('click', function() {
+      document.getElementById('profile-view').classList.remove('hidden');
+      document.getElementById('change-password-form').classList.add('hidden');
+    });
+
+    document.getElementById('save-password-btn').addEventListener('click', updatePassword);
+
+    {% if not user.email_verified %}
+    // Verify email functionality
+    document.getElementById('verify-email-btn').addEventListener('click', sendVerificationEmail);
+    {% endif %}
+
+    // Update profile function
+    async function updateProfile() {
+      const displayName = document.getElementById('edit-display-name').value.trim();
+
+      try {
+        const user = firebase.auth().currentUser;
+
+        if (!user) {
+          alert('You must be logged in to update your profile');
+          return;
+        }
+
+        await user.updateProfile({
+          displayName: displayName
+        });
+
+        // Update the UI
+        document.getElementById('display-name-view').textContent = displayName || user.email;
+        document.getElementById('display-name-field').textContent = displayName || 'Not set';
+
+        // Update profile initials if display name is set
+        if (displayName) {
+          document.getElementById('profile-initials').textContent = displayName.charAt(0).toUpperCase();
+          document.getElementById('user-initials').textContent = displayName.charAt(0).toUpperCase();
+        }
+
+        // Switch back to profile view
+        document.getElementById('profile-view').classList.remove('hidden');
+        document.getElementById('edit-profile-form').classList.add('hidden');
+
+        alert('Profile updated successfully');
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        alert(`Error updating profile: ${error.message}`);
+      }
+    }
+
+    // Update password function
+    async function updatePassword() {
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmNewPassword = document.getElementById('confirm-new-password').value;
+
+      if (!currentPassword || !newPassword || !confirmNewPassword) {
+        alert('Please fill in all password fields');
+        return;
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        alert('New passwords do not match');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        alert('New password must be at least 6 characters long');
+        return;
+      }
+
+      try {
+        const user = firebase.auth().currentUser;
+
+        if (!user) {
+          alert('You must be logged in to change your password');
+          return;
+        }
+
+        // Get credentials with current password
+        const credential = firebase.auth.EmailAuthProvider.credential(
+          user.email,
+          currentPassword
+        );
+
+        // Reauthenticate user
+        await user.reauthenticateWithCredential(credential);
+
+        // Update password
+        await user.updatePassword(newPassword);
+
+        // Clear form and switch back to profile view
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-new-password').value = '';
+        document.getElementById('profile-view').classList.remove('hidden');
+        document.getElementById('change-password-form').classList.add('hidden');
+
+        alert('Password updated successfully');
+      } catch (error) {
+        console.error('Error updating password:', error);
+
+        if (error.code === 'auth/wrong-password') {
+          alert('Current password is incorrect');
+        } else {
+          alert(`Error updating password: ${error.message}`);
+        }
+      }
+    }
+
+    {% if not user.email_verified %}
+    // Send verification email function
+    async function sendVerificationEmail() {
+      try {
+        const user = firebase.auth().currentUser;
+
+        if (!user) {
+          alert('You must be logged in to verify your email');
+          return;
+        }
+
+        await user.sendEmailVerification();
+        alert('Verification email sent! Please check your inbox.');
+      } catch (error) {
+        console.error('Error sending verification email:', error);
+        alert(`Error sending verification email: ${error.message}`);
+      }
+    }
+    {% endif %}
+
+    // Logout function
+    async function logout() {
+      try {
+        // Sign out from Firebase
+        await firebase.auth().signOut();
+
+        // Clear server-side cookie
+        await fetch('/api/logout', { method: 'POST' });
+
+        // Redirect to login page
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Error signing out:', error);
+      }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen flex flex-col">
+  <!-- Replace the nav section in boards.html with this -->
+<nav class="bg-blue-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Task Manager</h1>
+      <div class="flex items-center space-x-4 relative" id="user-menu-container">
+        <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
+          <div class="w-10 h-10 rounded-full bg-blue-400 flex items-center justify-center text-white">
+            <span id="user-initials">{{ user.email|first|upper }}</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <div id="user-dropdown" class="absolute right-0 top-12 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+          <a href="/boards" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Boards</a>
+          <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+          <button onclick="logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mx-auto p-6 flex-grow">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold">My Boards</h2>
+      <button onclick="showCreateBoardModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+        Create New Board
+      </button>
+    </div>
+
+    <div id="boards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Boards will be loaded here -->
+      <div class="animate-pulse">
+        <div class="h-32 bg-gray-200 rounded-lg"></div>
+      </div>
+      <div class="animate-pulse">
+        <div class="h-32 bg-gray-200 rounded-lg"></div>
+      </div>
+      <div class="animate-pulse">
+        <div class="h-32 bg-gray-200 rounded-lg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Board Modal -->
+  <div id="create-board-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-lg w-96">
+      <h3 class="text-xl font-bold mb-4">Create New Board</h3>
+      <input id="board-title" type="text" placeholder="Board Title" class="w-full p-2 border rounded mb-4">
+      <div class="flex justify-end space-x-2">
+        <button onclick="hideCreateBoardModal()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
+        <button onclick="createBoard()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Fetch boards on page load
+  document.addEventListener('DOMContentLoaded', fetchBoards);
+
+  async function fetchBoards() {
+    try {
+      const response = await fetch('/api/boards');
+      const data = await response.json();
+      
+      const boardsContainer = document.getElementById('boards-container');
+      boardsContainer.innerHTML = '';
+      
+      if (data.boards.length === 0) {
+        boardsContainer.innerHTML = '<p class="col-span-3 text-center text-gray-500">No boards found. Create a new board to get started.</p>';
+        return;
+      }
+      
+      data.boards.forEach(board => {
+        const boardCard = document.createElement('div');
+        boardCard.className = 'bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow';
+        boardCard.innerHTML = `
+          <div class="flex justify-between items-start">
+            <h3 class="text-xl font-semibold">${board.title}</h3>
+            ${board.is_creator ? '<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Owner</span>' : ''}
+          </div>
+          <p class="text-gray-500 text-sm mt-2">Created by: ${board.creator_email}</p>
+          <button onclick="openBoard('${board.id}')" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+            Open Board
+          </button>
+        `;
+        boardsContainer.appendChild(boardCard);
+      });
+    } catch (error) {
+      console.error('Error fetching boards:', error);
+    }
+  }
+
+  function openBoard(boardId) {
+    window.location.href = `/board/${boardId}`;
+  }
+
+  function showCreateBoardModal() {
+    document.getElementById('create-board-modal').classList.remove('hidden');
+  }
+
+  function hideCreateBoardModal() {
+    document.getElementById('create-board-modal').classList.add('hidden');
+    document.getElementById('board-title').value = '';
+  }
+
+  async function createBoard() {
+    const title = document.getElementById('board-title').value.trim();
+    
+    if (!title) {
+      alert('Please enter a board title');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/boards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title })
+      });
+      
+      if (response.ok) {
+        hideCreateBoardModal();
+        fetchBoards();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error('Error creating board:', error);
+      alert('An error occurred while creating the board');
+    }
+  }
+
+  // Toggle user dropdown
+  document.getElementById('user-menu-button').addEventListener('click', function() {
+    document.getElementById('user-dropdown').classList.toggle('hidden');
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(event) {
+    const container = document.getElementById('user-menu-container');
+    if (!container.contains(event.target)) {
+      document.getElementById('user-dropdown').classList.add('hidden');
+    }
+  });
+
+  async function logout() {
+    try {
+      // Sign out from Firebase
+      await firebase.auth().signOut();
+      
+      // Clear server-side cookie
+      await fetch('/api/logout', { method: 'POST' });
+      
+      // Redirect to login page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  }
+</script>
+{% endblock %}
