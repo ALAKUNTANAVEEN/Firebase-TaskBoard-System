@@ -1,19 +1,25 @@
-# Task Management System
+# Firebase Task Management System
 
-A collaborative task management system built with FastAPI, Firebase Authentication, and Firestore.
+A collaborative task management system built using Firebase, allowing multiple users to manage task boards, assign tasks, and track progress in real time.
 
-*Student Name:* Naveen Alakunta
+*Licence Holder Name:* Naveen Alakunta
 
 
 ## Features
 
-- User authentication via Firebase Auth
-- Create, view, edit, and delete task boards
-- Add members to boards for collaboration
-- Create, assign, edit, and delete tasks
-- Mark tasks as complete
-- Track task statistics (active, completed, total)
-- Role-based permissions (board creator vs. members)
+- 🔐 **Authentication**: Secure login/logout with Firebase Authentication
+- 📋 **Task Boards**: Create and manage task boards
+- 👥 **Collaboration**: Add users to boards with role-based permissions
+- ✅ **Task Management**:
+  - Create, edit, and delete tasks
+  - Assign tasks to board members
+  - Mark tasks as completed with timestamp
+  - Highlight unassigned or reassigned tasks
+- 🔄 **Real-Time Updates**: Tasks and boards update dynamically using Firestore
+- 🧮 **Task Counters**: Active, completed, and total task tracking
+- 🔒 **Access Control**:
+  - Only the board creator can delete the board or remove users
+  - Task permissions restricted by role
 
 ## Setup Instructions
 
